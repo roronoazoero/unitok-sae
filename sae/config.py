@@ -1,7 +1,7 @@
 """Shared configuration for SAE pipeline."""
 from dataclasses import dataclass
 
-
+# to be changed later: replace the local paths for
 @dataclass
 class SAEConfig:
     unitok_ckpt: str = "${WRKDIR}/UniTok/unitok_tokenizer.pth"
@@ -28,7 +28,7 @@ class SAEConfig:
 
     # SAE architecture 
     expansion_factor: int = 8  # hidden_dim = input_dim * expansion_factor = 8192
-    k: int = 64  # Top-k sparsity (~0.8% of 8192)
+    k: int = 64  # Top-k sparsity (~0.8% of 8192), will experiment later
     dead_threshold_steps: int = 10_000_000
 
     # Training
@@ -51,7 +51,6 @@ class SAEConfig:
 
     @property
     def imagenet_train_dir_resolved(self) -> str:
-        # Expand ${WRKDIR} placeholder to actual path
         import os
         return os.path.expandvars(self.imagenet_train_dir)
 

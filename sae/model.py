@@ -63,6 +63,7 @@ class TopKSAE(nn.Module):
             latent: (..., hidden_dim) sparse with exactly k nonzeros
             topk_indices: (..., k)
             topk_values: (..., k)
+            pre_acts: (..., hidden_dim)
         """
         x_centered = x - self.pre_bias
         pre_acts = self.encoder(x_centered)
@@ -70,15 +71,13 @@ class TopKSAE(nn.Module):
         topk_values = F.relu(topk_values)
         latent = torch.zeros_like(pre_acts)
         latent.scatter_(-1, topk_indices, topk_values)
-        return latent, topk_indices, topk_values
+        return latent, topk_indices, topk_values, pre_acts # return pre_acts as well
 
     def decode(self, latent: torch.Tensor) -> torch.Tensor:
         return self.decoder(latent) + self.pre_bias
 
     def forward(self, x: torch.Tensor) -> dict:
-        x_centered = x - self.pre_bias
-        pre_acts = self.encoder(x_centered)
-        latent, topk_indices, topk_values = self._encode_from_preacts(pre_acts) # pseudo-code for optimization, to be implemented later
+        latent, topk_indices, topk_values, pre_acts = self.encode(x) # 
         reconstruction = self.decode(latent)
         recon_loss = F.mse_loss(reconstruction, x)
 
@@ -89,8 +88,6 @@ class TopKSAE(nn.Module):
         n_dead = int(dead_mask.sum().item())
         if self.training and n_dead > 0:
             residual = (x - reconstruction).detach()
-            x_centered = x - self.pre_bias
-            pre_acts = self.encoder(x_centered)
             k_aux = min(2 * self.k, n_dead)
             dead_pre_acts = pre_acts.masked_fill(~dead_mask, float("-inf"))
             aux_vals, aux_idx = torch.topk(dead_pre_acts, k=k_aux, dim=-1)
