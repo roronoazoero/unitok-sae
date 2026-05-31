@@ -1,0 +1,1 @@
+{"train/aux_loss":0,"_timestamp":1.7800933179898837e+09,"val/L0":64,"train/lr":0,"train/loss":38.98435955047607,"_runtime":10824.975701379,"train/recon_loss":38.98435955047607,"_step":100000,"val/cos_sim":0.9557555292510986,"_wandb":{"runtime":10824},"train/L0":64,"train/dead_pct":0,"val/r_squared":0.9471716227676171,"val/recon_loss":39.16600354492188}

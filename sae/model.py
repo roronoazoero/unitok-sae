@@ -77,7 +77,7 @@ class TopKSAE(nn.Module):
         return self.decoder(latent) + self.pre_bias
 
     def forward(self, x: torch.Tensor) -> dict:
-        latent, topk_indices, topk_values, pre_acts = self.encode(x) # 
+        latent, topk_indices, topk_values, pre_acts = self.encode(x) # new fix
         reconstruction = self.decode(latent)
         recon_loss = F.mse_loss(reconstruction, x)
 

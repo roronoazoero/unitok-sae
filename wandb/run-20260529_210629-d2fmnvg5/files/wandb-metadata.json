@@ -1,0 +1,78 @@
+{
+  "os": "Linux-5.14.0-570.108.1.el9_6.x86_64-x86_64-with-glibc2.34",
+  "python": "CPython 3.10.20",
+  "startedAt": "2026-05-29T18:06:29.441007Z",
+  "args": [
+    "--wandb",
+    "--wandb_project",
+    "unitok-sae",
+    "--wandb_run",
+    "sae_k64_block15"
+  ],
+  "program": "/scratch/work/vuh12/UniTok/sae/train_sae.py",
+  "codePath": "sae/train_sae.py",
+  "codePathLocal": "sae/train_sae.py",
+  "git": {
+    "remote": "https://github.com/roronoazoero/unitok-sae.git",
+    "commit": "c2b250b11ec87fe5bb9ea1fb0ed3e0ba2745af3d"
+  },
+  "email": "hienthao9726@gmail.com",
+  "root": "/scratch/work/vuh12/UniTok",
+  "host": "gpu49.int.triton.aalto.fi",
+  "executable": "/scratch/work/vuh12/conda/pkgs/unitok_env/bin/python",
+  "cpu_count": 64,
+  "cpu_count_logical": 128,
+  "gpu": "NVIDIA H200",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "1079158554624",
+      "used": "7185514496"
+    }
+  },
+  "memory": {
+    "total": "2163998162944"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA H200",
+      "memoryTotal": "150754820096",
+      "architecture": "Hopper",
+      "uuid": "GPU-d80f821d-df4c-fadd-6d64-413c4a4dd451"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "slurm": {
+    "cluster_name": "triton",
+    "conf_server": "slurmctl,slurmctl2",
+    "cpus_on_node": "4",
+    "get_user_env": "1",
+    "gpus_on_node": "1",
+    "gtids": "0",
+    "job_account": "aalto_users",
+    "job_cpus_per_node": "4",
+    "job_end_time": "1780098709",
+    "job_gid": "3219885",
+    "job_gpus": "9",
+    "job_nodelist": "gpu49",
+    "job_partition": "gpu-h200-71g-ia-ellis",
+    "job_qos": "normal",
+    "job_start_time": "1780069909",
+    "job_uid": "3219885",
+    "job_user": "vuh12",
+    "jobid": "18092420",
+    "localid": "0",
+    "nodeid": "0",
+    "nodelist": "gpu49",
+    "oom_kill_step": "0",
+    "prio_process": "0",
+    "procid": "0",
+    "submit_dir": "/var/www/ood/apps/sys/dashboard",
+    "submit_host": "ondemand",
+    "task_pid": "1005588",
+    "tasks_per_node": "1",
+    "topology_addr": "s0-0.s1-18.gpu49",
+    "topology_addr_pattern": "switch.switch.node"
+  },
+  "writerId": "juwucdpgt7funrjo3vnoo8cwl1q6hbwh"
+}

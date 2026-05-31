@@ -1,0 +1,116 @@
+_wandb:
+    value:
+        cli_version: 0.27.0
+        e:
+            suycm8jk28r8grucrgtrlanmtpa2ri4f:
+                args:
+                    - --wandb
+                    - --wandb_project
+                    - unitok-sae
+                    - --wandb_run
+                    - sae_k64_block15
+                codePath: sae/train_sae.py
+                codePathLocal: sae/train_sae.py
+                cpu_count: 64
+                cpu_count_logical: 128
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "1079158554624"
+                        used: "7191531520"
+                email: hienthao9726@gmail.com
+                executable: /scratch/work/vuh12/conda/pkgs/unitok_env/bin/python
+                git:
+                    commit: c2b250b11ec87fe5bb9ea1fb0ed3e0ba2745af3d
+                    remote: https://github.com/roronoazoero/unitok-sae.git
+                gpu: NVIDIA H200
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Hopper
+                      memoryTotal: "150754820096"
+                      name: NVIDIA H200
+                      uuid: GPU-10c2c35e-505a-58e3-a98d-79ba902c8516
+                host: gpu49.int.triton.aalto.fi
+                memory:
+                    total: "2163998162944"
+                os: Linux-5.14.0-570.108.1.el9_6.x86_64-x86_64-with-glibc2.34
+                program: /scratch/work/vuh12/UniTok/sae/train_sae.py
+                python: CPython 3.10.20
+                root: /scratch/work/vuh12/UniTok
+                slurm:
+                    cluster_name: triton
+                    conf_server: slurmctl,slurmctl2
+                    cpus_on_node: "4"
+                    get_user_env: "1"
+                    gpus_on_node: "1"
+                    gtids: "0"
+                    job_account: aalto_users
+                    job_cpus_per_node: "4"
+                    job_end_time: "1780107744"
+                    job_gid: "3219885"
+                    job_gpus: "2"
+                    job_nodelist: gpu49
+                    job_partition: gpu-h200-71g-ia-ellis
+                    job_qos: normal
+                    job_start_time: "1780078944"
+                    job_uid: "3219885"
+                    job_user: vuh12
+                    jobid: "18094140"
+                    localid: "0"
+                    nodeid: "0"
+                    nodelist: gpu49
+                    oom_kill_step: "0"
+                    prio_process: "0"
+                    procid: "0"
+                    submit_dir: /var/www/ood/apps/sys/dashboard
+                    submit_host: ondemand
+                    task_pid: "1059556"
+                    tasks_per_node: "1"
+                    topology_addr: s0-0.s1-18.gpu49
+                    topology_addr_pattern: switch.switch.node
+                startedAt: "2026-05-29T19:21:31.873011Z"
+                writerId: suycm8jk28r8grucrgtrlanmtpa2ri4f
+        m: []
+        python_version: 3.10.20
+        t:
+            "1":
+                - 1
+            "2":
+                - 1
+            "3":
+                - 2
+                - 13
+                - 16
+                - 61
+            "4": 3.10.20
+            "5": 0.27.0
+            "12": 0.27.0
+            "13": linux-x86_64
+aux_loss_coef:
+    value: 0.03125
+batch_size:
+    value: 4096
+dead_threshold_steps:
+    value: 10000000
+expansion:
+    value: 8
+grad_clip:
+    value: 1
+hidden_dim:
+    value: 8192
+input_dim:
+    value: 1024
+k:
+    value: 64
+lr:
+    value: 0.0001
+n_train:
+    value: 65536000
+n_val:
+    value: 12800000
+steps:
+    value: 100000
+target_block:
+    value: 15
+warmup_steps:
+    value: 1000

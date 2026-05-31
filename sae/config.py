@@ -12,6 +12,7 @@ class SAEConfig:
 
     # SAE pipeline outputs 
     activations_path: str = "sae/activations/block15.h5"
+    val_activations_path: str = "sae/activations/block15_val.h5"
     checkpoint_dir: str = "sae/checkpoints"
     analysis_dir: str = "sae/analysis"
 

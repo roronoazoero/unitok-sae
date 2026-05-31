@@ -2,9 +2,12 @@ import os
 import sys
 import math
 import argparse
+import wandb
 import h5py
 import torch
-from torch.utils.data import DataLoader, Dataset
+import random
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 from torch.optim import Adam
 from tqdm import tqdm
 
@@ -17,25 +20,43 @@ from sae.config import CONFIG  # noqa: E402
 from sae.model import TopKSAE  # noqa: E402
 
 
-class H5ActivationDataset(Dataset):
-    def __init__(self, h5_path: str):
-        self.h5_path = h5_path
-        self._file = None
+# class H5ActivationDataset(Dataset):
+#     def __init__(self, h5_path: str):
+#         with h5py.File(h5_path, "r") as f:
+#             print(f"[data] Loading {h5_path} into RAM...")
+#             data = f["activations"][:]
+#             self.data = torch.from_numpy(data).float()
+#             self.dim = self.data.shape[1]
+#         print(f"[data] Loaded {self.data.shape} — {self.data.nbytes/1e9:.1f} GB")
+
+#     def __len__(self):
+#         return len(self.data)
+
+#     def __getitem__(self, idx):
+#         return self.data[idx]
+class BufferedH5Dataset(IterableDataset):
+    def __init__(self, h5_path: str, buffer_size: int = 500_000):
+        self.h5_path   = h5_path
+        self.buffer_size = buffer_size
         with h5py.File(h5_path, "r") as f:
             self.length = f["activations"].shape[0]
-            self.dim = f["activations"].shape[1]
-
-    def _ensure_open(self):
-        if self._file is None:
-            self._file = h5py.File(self.h5_path, "r")
+            self.dim    = f["activations"].shape[1]
 
     def __len__(self):
         return self.length
 
-    def __getitem__(self, idx):
-        self._ensure_open()
-        return torch.from_numpy(self._file["activations"][idx]).float()
-
+    def __iter__(self):
+        with h5py.File(self.h5_path, "r") as f:
+            n = self.length
+            # generate a random epoch-level ordering of chunk start positions
+            chunk_starts = list(range(0, n, self.buffer_size))
+            random.shuffle(chunk_starts)
+            for start in chunk_starts:
+                end  = min(start + self.buffer_size, n)
+                buf  = torch.from_numpy(f["activations"][start:end]).float()
+                perm = torch.randperm(len(buf))
+                buf  = buf[perm]
+                yield from buf
 
 def lr_schedule(step: int, warmup: int, total: int) -> float:
     if step < warmup:
@@ -72,6 +93,7 @@ def validate(sae: TopKSAE, val_loader: DataLoader, device: torch.device) -> dict
 
 def train_one(
     activations_path: str,
+    val_activations_path: str,
     output_dir: str,
     k: int,
     expansion: int,
@@ -88,29 +110,30 @@ def train_one(
 
     print(f"\n{'='*30}\n[train] k={k}, expansion={expansion}\n{'='*30}")
 
-    dataset = H5ActivationDataset(activations_path)
-    print(f"[train] {len(dataset):,} vectors of dim {dataset.dim}")
+    train_dataset = BufferedH5Dataset(activations_path)
+    val_dataset = BufferedH5Dataset(val_activations_path)
+    print(f"[train] train={len(train_dataset):,}  val={len(val_dataset):,}  dim={train_dataset.dim}")
 
     train_loader = DataLoader(
-        dataset,
+        train_dataset,
         batch_size=batch_size,
-        shuffle=True,
-        num_workers=4,
+        shuffle=False,
+        num_workers=0,
         pin_memory=True,
         drop_last=True,
-        persistent_workers=True,
+        # persistent_workers=True,
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
+        num_workers=0,
         pin_memory=True,
     )
 
     sae = TopKSAE(
-        input_dim=dataset.dim,
-        hidden_dim=dataset.dim * expansion,
+        input_dim=train_dataset.dim,
+        hidden_dim=train_dataset.dim * expansion,
         k=k,
         dead_threshold_steps=CONFIG.dead_threshold_steps,
     ).to(device)
@@ -136,7 +159,6 @@ def train_one(
         print(f"[train] Resumed from step {start_step}")
 
     if use_wandb:
-        import wandb
         run_name = wandb_run or f"sae_k{k}_block{CONFIG.target_block}"
         wandb.init(
             project=wandb_project,
@@ -145,8 +167,8 @@ def train_one(
             config={
                 "k":                    k,
                 "expansion":            expansion,
-                "input_dim":            dataset.dim,
-                "hidden_dim":           dataset.dim * expansion,
+                "input_dim":            train_dataset.dim,
+                "hidden_dim":           train_dataset.dim * expansion,
                 "lr":                   lr,
                 "batch_size":           batch_size,
                 "steps":                steps,
@@ -155,8 +177,8 @@ def train_one(
                 "dead_threshold_steps": CONFIG.dead_threshold_steps,
                 "grad_clip":            CONFIG.grad_clip,
                 "target_block":         CONFIG.target_block,
-                "n_train":              n_train,
-                "n_val":                n_val,
+                "n_train":              len(train_dataset),
+                "n_val":                len(val_dataset),
             },
         )
 
@@ -170,7 +192,7 @@ def train_one(
         try:
             batch = next(data_iter)
         except StopIteration:
-            data_iter = iter(loader)
+            data_iter = iter(train_loader)
             batch = next(data_iter)
         batch = batch.to(device, non_blocking=True)
 
@@ -205,7 +227,6 @@ def train_one(
             })
 
             if use_wandb:
-                import wandb
                 wandb.log({
                     "train/loss":       avg["loss"],
                     "train/recon_loss": avg["recon"],
@@ -223,7 +244,6 @@ def train_one(
             print(f"\n[val  step={step+1}] " +
                   "  ".join(f"{k_}={v:.4f}" for k_, v in val_metrics.items()))
             if use_wandb:
-                import wandb
                 wandb.log(val_metrics, step=step + 1)
                 
             ckpt_path = os.path.join(
@@ -235,8 +255,8 @@ def train_one(
                 "sae": sae.state_dict(),
                 "optimizer": optimizer.state_dict(),
                 "scheduler": scheduler.state_dict(),
-                "input_dim": dataset.dim,
-                "hidden_dim": dataset.dim * expansion,
+                "input_dim": train_dataset.dim,
+                "hidden_dim": train_dataset.dim * expansion,
                 "k": k,
             }, ckpt_path)
     
@@ -247,13 +267,12 @@ def train_one(
     torch.save({
         "step": steps,
         "sae": sae.state_dict(),
-        "input_dim": dataset.dim,
-        "hidden_dim": dataset.dim * expansion,
+        "input_dim": train_dataset.dim,
+        "hidden_dim": train_dataset.dim * expansion,
         "k": k,
     }, final_path)
     print(f"[train] Saved {final_path}")
     if use_wandb:
-        import wandb
         wandb.finish()
     return final_path
 
@@ -261,6 +280,7 @@ def train_one(
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--activations", type=str, default=CONFIG.activations_path)
+    parser.add_argument("--val_activations", type=str,   default=CONFIG.val_activations_path)
     parser.add_argument("--output_dir", type=str, default=CONFIG.checkpoint_dir)
     parser.add_argument("--steps", type=int, default=CONFIG.total_steps)
     parser.add_argument("--batch_size", type=int, default=CONFIG.sae_batch_size)
@@ -282,7 +302,7 @@ def main():
     if args.sweep:
         for k_val in CONFIG.sweep_k_values:
             train_one(
-                args.activations, args.output_dir, k_val, args.expansion,
+                args.activations, args.val_activations, args.output_dir, k_val, args.expansion,
                 args.steps, args.batch_size, args.lr, resume=None,
                 use_wandb=args.wandb,
                 wandb_project=args.wandb_project,
@@ -290,7 +310,7 @@ def main():
             )
     else:
         train_one(
-            args.activations, args.output_dir, args.k, args.expansion,
+            args.activations, args.val_activations, args.output_dir, args.k, args.expansion,
             args.steps, args.batch_size, args.lr, resume=args.resume,
             use_wandb=args.wandb,
             wandb_project=args.wandb_project,
