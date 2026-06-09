@@ -20,3 +20,10 @@ local_output*
 *.log
 *.txt
 *.h5
+
+
+sae/eval_results/tmp_*/
+sae/eval_results/**/*.png
+sae/analysis/
+
+wandb/

@@ -1,4 +1,4 @@
- import os
+import os
 import sys
 import argparse
 import h5py
@@ -92,6 +92,8 @@ def main():
         running_M2 = np.zeros(CONFIG.input_dim, dtype=np.float64)
         n_seen = 0
 
+        labels_dset = None
+
         pbar = tqdm(total=len(dataset), desc="Collecting")
         n_imgs = 0
 
@@ -106,6 +108,17 @@ def main():
 
             B, L, D = acts.shape
             acts_flat = acts.reshape(-1, D).numpy().astype(np.float64)
+
+            # store per token labels
+            if labels_dset is None:
+                labels_dset = f.create_dataset(
+                    "labels",
+                    shape=(0,), maxshape=(None,), dtype="int32",
+                )
+            repeated = np.repeat(_labels.numpy().astype(np.int32), L)
+            cur_l = labels_dset.shape[0]
+            labels_dset.resize(cur_l + len(repeated), axis=0)
+            labels_dset[cur_l:] = repeated
 
             # Append to HDF5
             cur = dset.shape[0]
