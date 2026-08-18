@@ -16,8 +16,8 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-_MEAN = [0.485, 0.456, 0.406]
-_STD  = [0.229, 0.224, 0.225]
+# _MEAN = [0.485, 0.456, 0.406]
+# _STD  = [0.229, 0.224, 0.225]
 
 _N_TOKENS   = 64
 _PATCH_GRID = 8
@@ -27,24 +27,12 @@ def make_transform(img_size: int = 256) -> transforms.Compose:
     return transforms.Compose([
         transforms.Resize((img_size, img_size)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=_MEAN, std=_STD),
+        transforms.Lambda(lambda x: x * 2 - 1),
     ])
 
 # TODO: create a 3D mapping for all features and its top-activating images
 
-def find_max_activating_examples(sae, unitok, imagenet_val_dir: str, feature_indices: list, k_top: int=16, img_batch: int=32, device: torch.device=None) -> dict:
-    """
-    Stream the entire ImageNet val set through UniTok encoder block 15 -> SAE.
-    For each feature in feature_indices, track the k_top most strongly activating
-    (image_idx, patch_idx) pairs.
-
-    Uses topk_indices / topk_values from sae.encode() to avoid materializing the
-    full (B, hidden_dim) sparse tensor.
-
-    Returns:
-        dict[feature_id] = [(activation_value, image_idx, patch_idx), ...]
-        sorted largest activation first.
-    """
+def find_max_activating_examples(sae, unitok, imagenet_val_dir: str, feature_indices: list, k_top: int=16, img_batch: int=32, device: torch.device=None, block: int = 15) -> dict:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dataset = ImageFolder(imagenet_val_dir, transform = make_transform())
     loader = DataLoader(dataset, batch_size=img_batch, shuffle=False, num_workers=4, pin_memory=True)
@@ -57,7 +45,7 @@ def find_max_activating_examples(sae, unitok, imagenet_val_dir: str, feature_ind
     def _hook(module, inp, out):
         act_buffer.append(out.detach().cpu())
 
-    handle = unitok.encoder.blocks[15].register_forward_hook(_hook)
+    handle = unitok.encoder.blocks[block].register_forward_hook(_hook)
     global_img_idx = 0
     k = sae.k
 
@@ -198,10 +186,13 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint",   required=True)
     parser.add_argument("--unitok_ckpt",  required=True)
     parser.add_argument("--imagenet_val", required=True)
-    parser.add_argument("--output_dir",   default="sae/analysis/features_val/")
+    parser.add_argument("--output_dir",   default="sae/analysis/allfeatures_block15/")
     parser.add_argument("--n_features",   type=int, default=256)
     parser.add_argument("--k_top",        type=int, default=64)
     parser.add_argument("--img_batch",    type=int, default=32)
+    parser.add_argument("--skip_images",  action="store_true",
+                        help="Save only heap results (.pt) without generating PNG grids. "
+                             "Much lower storage — use with build_umap_viz.py --heap_results.")
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -213,10 +204,14 @@ if __name__ == "__main__":
 
     unitok = build_unitok(args.unitok_ckpt, device)
 
-    rng = np.random.default_rng(42)
-    feature_indices = sorted(
-        rng.choice(ckpt["hidden_dim"], size=args.n_features, replace=False).tolist()
-    )
+    # n_features == hidden_dim → analyze all features
+    if args.n_features >= ckpt["hidden_dim"]:
+        feature_indices = list(range(ckpt["hidden_dim"]))
+    else:
+        rng = np.random.default_rng(42)
+        feature_indices = sorted(
+            rng.choice(ckpt["hidden_dim"], size=args.n_features, replace=False).tolist()
+        )
 
     results = find_max_activating_examples(
         sae=sae, unitok=unitok,
@@ -226,4 +221,10 @@ if __name__ == "__main__":
         img_batch=args.img_batch,
         device=device,
     )
-    visualize_max_activating(results, args.imagenet_val, args.output_dir)
+    if args.skip_images:
+        heaps_path = os.path.join(args.output_dir, "heap_results.pt")
+        torch.save({"results": results, "imagenet_val": args.imagenet_val}, heaps_path)
+        heaps_mb = os.path.getsize(heaps_path) / 1024 / 1024
+        print(f"Saved heap results → {heaps_path}  ({heaps_mb:.1f} MB)  [no PNG grids written]")
+    else:
+        visualize_max_activating(results, args.imagenet_val, args.output_dir)

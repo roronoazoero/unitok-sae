@@ -30,7 +30,7 @@ class SAEConfig:
     # SAE architecture 
     expansion_factor: int = 8  # hidden_dim = input_dim * expansion_factor = 8192
     k: int = 64  # Top-k sparsity (~0.8% of 8192), will experiment later
-    dead_threshold_steps: int = 10_000_000
+    dead_threshold_steps: int = 10_000
 
     # Training
     sae_batch_size: int = 4096

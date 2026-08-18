@@ -5,6 +5,8 @@ import sys
 import numpy as np
 import torch
 
+torch.backends.cudnn.benchmark = True
+
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
@@ -22,9 +24,9 @@ def main():
     parser.add_argument("--unitok_ckpt",          required=True)
     parser.add_argument("--imagenet_train",        default=None)
     parser.add_argument("--imagenet_val",          default=None)
-    parser.add_argument("--output_dir",            default="sae/eval_results/")
+    parser.add_argument("--output_dir",            default="sae/eval_results/correct_norm/")
     parser.add_argument("--n_train",               type=int, default=3000)
-    parser.add_argument("--n_val",                 type=int, default=2000)
+    parser.add_argument("--n_val",                 type=int, default=50000)
     parser.add_argument("--img_batch",             type=int, default=32)
     parser.add_argument("--n_max_act_features",    type=int, default=256)
     parser.add_argument("--feature_extractor_path", default=None)

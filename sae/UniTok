@@ -1,0 +1,4 @@
+import torch, os
+
+ckpt = torch.load(os.path.expandvars('\$WRKDIR/UniTok/unitok_tokenizer.pth'), map_location='cpu')
+print(list(ckpt.keys()))

@@ -12,23 +12,21 @@ if _PROJECT_ROOT not in sys.path:
 from sae.model import TopKSAE
 from sae.unitok_loader import build_unitok  # noqa: F401 
 
-_MEAN = [0.485, 0.456, 0.406]
-_STD  = [0.229, 0.224, 0.225]
+# _MEAN = [0.485, 0.456, 0.406]
+# _STD  = [0.229, 0.224, 0.225]
 
 
 def make_transform(img_size: int = 256) -> transforms.Compose:
     return transforms.Compose([
         transforms.Resize((img_size, img_size)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=_MEAN, std=_STD),
+        transforms.Lambda(lambda x: x * 2 - 1),
     ])
 
 
 def denorm(x: torch.Tensor) -> torch.Tensor:
     # ImageNet-normalized (B,3,H,W) tensor -> [0, 1]
-    mean = torch.tensor(_MEAN, device=x.device).view(1, 3, 1, 1)
-    std  = torch.tensor(_STD,  device=x.device).view(1, 3, 1, 1)
-    return (x * std + mean).clamp(0, 1)
+    return ((x + 1) / 2).clamp(0, 1)
 
 
 def load_sae(checkpoint_path: str, device: torch.device):

@@ -1,0 +1,32 @@
+{
+  "checkpoint": "sae/checkpoints/block25/sae_block25_k64_final.pt",
+  "date": "2026-07-29 01:08",
+  "k": 64,
+  "hidden_dim": 8192,
+  "reconstruction": {
+    "train": {
+      "n_images": 3000,
+      "baseline_zeroshot_top1": 0.7963333333333333,
+      "sae_zeroshot_top1": 0.7206666666666667
+    },
+    "val": {
+      "n_images": 50000,
+      "baseline_zeroshot_top1": 0.65688,
+      "sae_zeroshot_top1": 0.62022
+    }
+  },
+  "rfid": {
+    "train": {
+      "baseline_fid": 4.253285734140206,
+      "sae_fid": 5.205445117484146,
+      "baseline_isc": 10.153455165766974,
+      "sae_isc": 10.204394978249411
+    },
+    "val": {
+      "baseline_fid": 0.38096525036127105,
+      "sae_fid": 0.545551778847539,
+      "baseline_isc": 202.07756754996697,
+      "sae_isc": 199.74023686183654
+    }
+  }
+}

@@ -21,10 +21,7 @@ def make_transform():
     return transforms.Compose([
         transforms.Resize((CONFIG.img_size, CONFIG.img_size)),
         transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        ),
+        transforms.Lambda(lambda x: x * 2 - 1),
     ])
 
 def main():
@@ -32,8 +29,7 @@ def main():
     parser.add_argument("--ckpt", type=str, default=CONFIG.unitok_ckpt)
     parser.add_argument("--block", type=int, default=CONFIG.target_block)
     parser.add_argument("--data_dir", type=str,
-                        default=CONFIG.imagenet_train_dir_resolved,
-                        help="Path to ImageFolder-style train directory")
+                        default=CONFIG.imagenet_train_dir_resolved)
     parser.add_argument("--output", type=str, default=CONFIG.activations_path)
     parser.add_argument("--batch_size", type=int, default=CONFIG.collect_batch_size)
     parser.add_argument("--num_workers", type=int, default=CONFIG.num_workers)

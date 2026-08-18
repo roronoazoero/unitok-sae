@@ -1,0 +1,12 @@
+{
+  "checkpoint": "sae/eval_results/block10_k64/sae_block10_k64_final.pt",
+  "date": "2026-07-23 14:09",
+  "rfid": {
+    "val": {
+      "baseline_fid": 0.3809798145493346,
+      "sae_fid": 0.47253708978865916,
+      "baseline_isc": 202.07823188457618,
+      "sae_isc": 199.49231558016717
+    }
+  }
+}

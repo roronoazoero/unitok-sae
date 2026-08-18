@@ -28,17 +28,7 @@ def _save_batch_pngs(imgs_01: torch.Tensor, out_dir: str, start_idx: int) -> Non
         Image.fromarray(im).save(os.path.join(out_dir, f"{start_idx + i:06d}.png"))
 
 
-def run_two_pass_eval(sae, unitok, train_dir: str, val_dir: str, n_train: int, n_val: int, img_batch: int, output_dir: str, device: torch.device, text_embs_fn=None, save_images: bool = True):
-    """
-    Run Pass A (no SAE) and Pass B (SAE hook at block 15) on n_train + n_val images.
-
-    text_embs_fn: optional callable(unitok, dataset, device) -> text embedding tensor
-                  for zero-shot accuracy. Pass None to skip zero-shot.
-
-    Returns:
-        pass_results: dict mapping split → per-image metrics
-        tmp_dirs:     dict mapping split → (orig_dir, baseline_dir, sae_dir) for rFID
-    """
+def run_two_pass_eval(sae, unitok, train_dir: str, val_dir: str, n_train: int, n_val: int, img_batch: int, output_dir: str, device: torch.device, block: int = 15, text_embs_fn=None, save_images: bool = True):
     splits = []
     if train_dir and n_train > 0:
         splits.append(("train", train_dir, n_train))
@@ -72,8 +62,8 @@ def run_two_pass_eval(sae, unitok, train_dir: str, val_dir: str, n_train: int, n
             print(f"[eval] Building text embeddings for zero-shot ({split})...")
             text_embs = text_embs_fn(unitok, dataset, device)
 
-        psnr_A, ssim_A = [], []
-        psnr_B, ssim_B = [], []
+        # psnr_A, ssim_A = [], []
+        # psnr_B, ssim_B = [], []
         top1_A = top1_B = total_zs = 0
         img_offset = 0
         grid_saved = False
@@ -89,7 +79,7 @@ def run_two_pass_eval(sae, unitok, train_dir: str, val_dir: str, n_train: int, n
                 latent, *_ = sae.encode(out.float())
                 return sae.decode(latent).to(out.dtype)
 
-            handle = unitok.encoder.blocks[15].register_forward_hook(_hook)
+            handle = unitok.encoder.blocks[block].register_forward_hook(_hook)
             try:
                 rec_B, clip_B = eval_forward(unitok, imgs)
             finally:
@@ -99,14 +89,14 @@ def run_two_pass_eval(sae, unitok, train_dir: str, val_dir: str, n_train: int, n
             rec_A_01 = (rec_A.clamp(-1, 1) + 1) / 2
             rec_B_01 = (rec_B.clamp(-1, 1) + 1) / 2
 
-            for i in range(B):
-                o = orig_01[i].cpu().float().numpy()
-                a = rec_A_01[i].cpu().float().numpy()
-                b = rec_B_01[i].cpu().float().numpy()
-                psnr_A.append(_psnr(o, a))
-                ssim_A.append(_ssim(o, a))
-                psnr_B.append(_psnr(o, b))
-                ssim_B.append(_ssim(o, b))
+            # for i in range(B):
+            #     o = orig_01[i].cpu().float().numpy()
+            #     a = rec_A_01[i].cpu().float().numpy()
+            #     b = rec_B_01[i].cpu().float().numpy()
+            #     psnr_A.append(_psnr(o, a))
+            #     ssim_A.append(_ssim(o, a))
+            #     psnr_B.append(_psnr(o, b))
+            #     ssim_B.append(_ssim(o, b))
 
             if save_images:
                 _save_batch_pngs(orig_01,  d_orig, img_offset)
@@ -129,23 +119,23 @@ def run_two_pass_eval(sae, unitok, train_dir: str, val_dir: str, n_train: int, n
 
             img_offset += B
 
-        result = {
-            "n_images":      len(psnr_A),
-            "baseline_psnr": float(np.mean(psnr_A)),
-            "sae_psnr":      float(np.mean(psnr_B)),
-            "baseline_ssim": float(np.mean(ssim_A)),
-            "sae_ssim":      float(np.mean(ssim_B)),
-        }
+        result = {"n_images": img_offset}
+        #     "n_images":      len(psnr_A),
+        #     "baseline_psnr": float(np.mean(psnr_A)),
+        #     "sae_psnr":      float(np.mean(psnr_B)),
+        #     "baseline_ssim": float(np.mean(ssim_A)),
+        #     "sae_ssim":      float(np.mean(ssim_B)),
+        # }
         if total_zs > 0:
             result["baseline_zeroshot_top1"] = top1_A / total_zs
             result["sae_zeroshot_top1"]      = top1_B / total_zs
 
         all_results[split] = result
 
-        dp = result["sae_psnr"] - result["baseline_psnr"]
-        ds = result["sae_ssim"] - result["baseline_ssim"]
-        print(f"  [{split}] PSNR  baseline={result['baseline_psnr']:.2f}  SAE={result['sae_psnr']:.2f}  Δ={dp:+.2f} dB")
-        print(f"  [{split}] SSIM  baseline={result['baseline_ssim']:.4f}  SAE={result['sae_ssim']:.4f}  Δ={ds:+.4f}")
+        # dp = result["sae_psnr"] - result["baseline_psnr"]
+        # ds = result["sae_ssim"] - result["baseline_ssim"]
+        # print(f"  [{split}] PSNR  baseline={result['baseline_psnr']:.2f}  SAE={result['sae_psnr']:.2f}  Δ={dp:+.2f} dB")
+        # print(f"  [{split}] SSIM  baseline={result['baseline_ssim']:.4f}  SAE={result['sae_ssim']:.4f}  Δ={ds:+.4f}")
         if total_zs > 0:
             dz = result["sae_zeroshot_top1"] - result["baseline_zeroshot_top1"]
             print(f"  [{split}] ZS top-1  baseline={result['baseline_zeroshot_top1']:.2%}  "
