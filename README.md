@@ -321,7 +321,7 @@ What came out of it:
 - Required values are large (thousands, versus natural activations of roughly 100 to 500), and the useful range before distortion is narrow, so sweep in small steps. This may also be because the injected signal gets distorted on its way through the remaining encoder blocks, the quantizer and the decoder, which is worth looking into.
 - Blank-image injection (feature 2549, values 1000 to 8000) still does not produce the feature's concept, only frame-like artefacts.
 
-To reproduce: set `CHECKPOINT` to the block-25 SAE, run the config and helper cells, then the "Experiment 2" cells and the "Inject feature(s) on random images" cells (`INJECT_FEATURES = {7196: ...}`, `INJECT_VALS_SWEEP = [0, 4000, 4500, 4750]`).
+To reproduce: set `CHECKPOINT` to the different SAEs that you want to experiment with, run the config and helper cells, then the "Experiment 2" cells and the "Inject feature(s) on random images" cells. For example, the block-25 result above used `INJECT_FEATURES = {7196: ...}` and `INJECT_VALS_SWEEP = [0, 4000, 4500, 4750]`; with another SAE, pick a feature ID from that SAE and adjust the sweep values.
 
 > A note on how this notebook was run: I manually changed the checkpoint being loaded and the block index in the helper functions every time I ran an experiment, and I may have forgotten to change them back. I also did not keep good notes on which SAE and block each result was produced with; that is on me. As a result, the notebook as committed is not internally consistent: it loads the block-25 SAE, `steer_forward` and `ablation_forward` read `BLOCK` from the checkpoint, but `inject_feature_forward`, `multi_feature_forward`, `get_sae_latent` and the AutoPGD / delta functions at the bottom hard-code `blocks[15]`.
 >
